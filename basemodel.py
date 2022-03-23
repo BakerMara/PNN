@@ -6,11 +6,11 @@ from __future__ import print_function
 
 import time
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data as Data
-from torch.utils.data import DataLoader
+import oneflow as torch
+import oneflow.nn as nn
+import oneflow.nn.functional as F
+import oneflow.utils.data as Data
+from oneflow.utils.data import DataLoader
 from sklearn.metrics import *
 from tqdm import tqdm
 

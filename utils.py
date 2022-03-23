@@ -1,8 +1,8 @@
 from collections import OrderedDict, namedtuple, defaultdict
 
 
-import torch
-import torch.nn as nn
+import oneflow as torch
+import oneflow.nn as nn
 from layers import SequencePoolingLayer
 
 
