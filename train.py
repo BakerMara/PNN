@@ -83,6 +83,8 @@ class Trainer(object):
     def __call__(self):
 #        self.train()
 #	TODO
+        print("there are someting to do!")
+
 
 if __name__ == "__main__":
     flow.boxing.nccl.enable_all_to_all(True)
