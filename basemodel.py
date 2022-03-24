@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import time
 import numpy as np
-import oneflow as torch
+import oneflow as flow
 import oneflow.nn as nn
 import oneflow.nn.functional as F
 import oneflow.utils.data as Data
@@ -38,9 +38,9 @@ class Linear(nn.Module):
             nn.init.normal_(tensor.weight, mean=0, std=init_std)
 
         if len(self.dense_feature_columns) > 0:
-            self.weight = nn.Parameter(torch.Tensor(sum(fc.dimension for fc in self.dense_feature_columns), 1).to(
+            self.weight = nn.Parameter(flow.Tensor(sum(fc.dimension for fc in self.dense_feature_columns), 1).to(
                 device))
-            torch.nn.init.normal_(self.weight, mean=0, std=init_std)
+            flow.nn.init.normal_(self.weight, mean=0, std=init_std)
 
     def forward(self, X, sparse_feat_refine_weight=None):
 
@@ -58,15 +58,15 @@ class Linear(nn.Module):
 
         sparse_embedding_list += varlen_embedding_list
 
-        linear_logit = torch.zeros([X.shape[0], 1]).to(sparse_embedding_list[0].device)
+        linear_logit = flow.zeros([X.shape[0], 1]).to(sparse_embedding_list[0].device)
         if len(sparse_embedding_list) > 0:
-            sparse_embedding_cat = torch.cat(sparse_embedding_list, dim=-1)
+            sparse_embedding_cat = flow.cat(sparse_embedding_list, dim=-1)
             if sparse_feat_refine_weight is not None:
                 sparse_embedding_cat = sparse_embedding_cat * sparse_feat_refine_weight.unsqueeze(1)
-            sparse_feat_logit = torch.sum(sparse_embedding_cat, dim=-1, keepdim=False)
+            sparse_feat_logit = flow.sum(sparse_embedding_cat, dim=-1, keepdim=False)
             linear_logit += sparse_feat_logit
         if len(dense_value_list) > 0:
-            dense_value_logit = torch.cat(
+            dense_value_logit = flow.cat(
                 dense_value_list, dim=-1).matmul(self.weight)
             linear_logit += dense_value_logit
 
@@ -78,12 +78,12 @@ class BaseModel(nn.Module):
                  init_std=0.0001, seed=1024, task='binary', device='cpu', gpus=None):
 
         super(BaseModel, self).__init__()
-        torch.manual_seed(seed)
+        flow.manual_seed(seed)
 
         self.dnn_feature_columns = dnn_feature_columns
 
-        self.reg_loss = torch.zeros((1,), device=device)
-        self.aux_loss = torch.zeros((1,), device=device)
+        self.reg_loss = flow.zeros((1,), device=device)
+        self.aux_loss = flow.zeros((1,), device=device)
         self.device = device
         self.gpus = gpus
         if gpus and str(self.gpus[0]) not in self.device:
@@ -121,7 +121,6 @@ class BaseModel(nn.Module):
         :param validation_split: Float between 0 and 1. Fraction of the training data to be used as validation data. The model will set apart this fraction of the training data, will not train on it, and will evaluate the loss and any model metrics on this data at the end of each epoch. The validation data is selected from the last samples in the `x` and `y` data provided, before shuffling.
         :param validation_data: tuple `(x_val, y_val)` or tuple `(x_val, y_val, val_sample_weights)` on which to evaluate the loss and any model metrics at the end of each epoch. The model will not be trained on this data. `validation_data` will override `validation_split`.
         :param shuffle: Boolean. Whether to shuffle the order of the batches at the beginning of each epoch.
-        :param callbacks: List of `deepctr_torch.callbacks.Callback` instances. List of callbacks to apply during training and validation (if ). See [callbacks](https://tensorflow.google.cn/api_docs/python/tf/keras/callbacks). Now available: `EarlyStopping` , `ModelCheckpoint`
         :return: A `History` object. Its `History.history` attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).
         """
         if isinstance(x, dict):
@@ -165,9 +164,9 @@ class BaseModel(nn.Module):
                 x[i] = np.expand_dims(x[i], axis=1)
 
         train_tensor_data = Data.TensorDataset(
-            torch.from_numpy(
+            flow.from_numpy(
                 np.concatenate(x, axis=-1)),
-            torch.from_numpy(y))
+            flow.from_numpy(y))
         if batch_size is None:
             batch_size = 256
 
@@ -177,7 +176,7 @@ class BaseModel(nn.Module):
 
         if self.gpus:
             print('parallel running on these gpus:', self.gpus)
-            model = torch.nn.DataParallel(model, device_ids=self.gpus)
+            model = flow.nn.DataParallel(model, device_ids=self.gpus)
             batch_size *= len(self.gpus)  # input `batch_size` is batch_size per gpu
         else:
             print(self.device)
@@ -285,12 +284,12 @@ class BaseModel(nn.Module):
                 x[i] = np.expand_dims(x[i], axis=1)
 
         tensor_data = Data.TensorDataset(
-            torch.from_numpy(np.concatenate(x, axis=-1)))
+            flow.from_numpy(np.concatenate(x, axis=-1)))
         test_loader = DataLoader(
             dataset=tensor_data, shuffle=False, batch_size=batch_size)
 
         pred_ans = []
-        with torch.no_grad():
+        with flow.no_grad():
             for _, x_test in enumerate(test_loader):
                 x = x_test[0].to(self.device).float()
 
@@ -349,7 +348,7 @@ class BaseModel(nn.Module):
 
     def add_regularization_weight(self, weight_list, l1=0.0, l2=0.0):
         # For a Parameter, put it in a list to keep Compatible with get_regularization_loss()
-        if isinstance(weight_list, torch.nn.parameter.Parameter):
+        if isinstance(weight_list, flow.nn.parameter.Parameter):
             weight_list = [weight_list]
         # For generators, filters and ParameterLists, convert them to a list of tensors to avoid bugs.
         # e.g., we can't pickle generator objects when we save the model.
@@ -358,7 +357,7 @@ class BaseModel(nn.Module):
         self.regularization_weight.append((weight_list, l1, l2))
 
     def get_regularization_loss(self, ):
-        total_reg_loss = torch.zeros((1,), device=self.device)
+        total_reg_loss = flow.zeros((1,), device=self.device)
         for weight_list, l1, l2 in self.regularization_weight:
             for w in weight_list:
                 if isinstance(w, tuple):
@@ -366,12 +365,12 @@ class BaseModel(nn.Module):
                 else:
                     parameter = w
                 if l1 > 0:
-                    total_reg_loss += torch.sum(l1 * torch.abs(parameter))
+                    total_reg_loss += flow.sum(l1 * flow.abs(parameter))
                 if l2 > 0:
                     try:
-                        total_reg_loss += torch.sum(l2 * torch.square(parameter))
+                        total_reg_loss += flow.sum(l2 * flow.square(parameter))
                     except AttributeError:
-                        total_reg_loss += torch.sum(l2 * parameter * parameter)
+                        total_reg_loss += flow.sum(l2 * parameter * parameter)
 
         return total_reg_loss
 
@@ -383,8 +382,8 @@ class BaseModel(nn.Module):
                 metrics=None,
                 ):
         """
-        :param optimizer: String (name of optimizer) or optimizer instance. See [optimizers](https://pytorch.org/docs/stable/optim.html).
-        :param loss: String (name of objective function) or objective function. See [losses](https://pytorch.org/docs/stable/nn.functional.html#loss-functions).
+        :param optimizer: String (name of optimizer) or optimizer instance. 
+        :param loss: String (name of objective function) or objective function. 
         :param metrics: List of metrics to be evaluated by the model during training and testing. Typically you will use `metrics=['accuracy']`.
         """
         self.metrics_names = ["loss"]
@@ -395,13 +394,13 @@ class BaseModel(nn.Module):
     def _get_optim(self, optimizer):
         if isinstance(optimizer, str):
             if optimizer == "sgd":
-                optim = torch.optim.SGD(self.parameters(), lr=0.01)
+                optim = flow.optim.SGD(self.parameters(), lr=0.01)
             elif optimizer == "adam":
-                optim = torch.optim.Adam(self.parameters())  # 0.001
+                optim = flow.optim.Adam(self.parameters())  # 0.001
             elif optimizer == "adagrad":
-                optim = torch.optim.Adagrad(self.parameters())  # 0.01
+                optim = flow.optim.Adagrad(self.parameters())  # 0.01
             elif optimizer == "rmsprop":
-                optim = torch.optim.RMSprop(self.parameters())
+                optim = flow.optim.RMSprop(self.parameters())
             else:
                 raise NotImplementedError
         else:

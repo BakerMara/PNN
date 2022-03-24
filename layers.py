@@ -1,6 +1,6 @@
 import itertools
 
-import oneflow as torch
+import oneflow as flow
 import oneflow.nn as nn
 import oneflow.nn.functional as F
 import numpy as np
@@ -79,7 +79,7 @@ def concat_fun(inputs, axis=-1):
     if len(inputs) == 1:
         return inputs[0]
     else:
-        return torch.cat(inputs, dim=axis)
+        return flow.cat(inputs, dim=axis)
 
 
 class InnerProductLayer(nn.Module):
@@ -113,14 +113,14 @@ class InnerProductLayer(nn.Module):
             for j in range(i + 1, num_inputs):
                 row.append(i)
                 col.append(j)
-        p = torch.cat([embed_list[idx]
+        p = flow.cat([embed_list[idx]
                        for idx in row], dim=1)  # batch num_pairs k
-        q = torch.cat([embed_list[idx]
+        q = flow.cat([embed_list[idx]
                        for idx in col], dim=1)
 
         inner_product = p * q
         if self.reduce_sum:
-            inner_product = torch.sum(
+            inner_product = flow.sum(
                 inner_product, dim=2, keepdim=True)
         return inner_product
 
@@ -149,14 +149,14 @@ class OutterProductLayer(nn.Module):
         embed_size = embedding_size
         if self.kernel_type == 'mat':
 
-            self.kernel = nn.Parameter(torch.Tensor(
+            self.kernel = nn.Parameter(flow.Tensor(
                 embed_size, num_pairs, embed_size))
 
         elif self.kernel_type == 'vec':
-            self.kernel = nn.Parameter(torch.Tensor(num_pairs, embed_size))
+            self.kernel = nn.Parameter(flow.Tensor(num_pairs, embed_size))
 
         elif self.kernel_type == 'num':
-            self.kernel = nn.Parameter(torch.Tensor(num_pairs, 1))
+            self.kernel = nn.Parameter(flow.Tensor(num_pairs, 1))
         nn.init.xavier_uniform_(self.kernel)
 
         self.to(device)
@@ -170,32 +170,32 @@ class OutterProductLayer(nn.Module):
             for j in range(i + 1, num_inputs):
                 row.append(i)
                 col.append(j)
-        p = torch.cat([embed_list[idx]
+        p = flow.cat([embed_list[idx]
                        for idx in row], dim=1)  # batch num_pairs k
-        q = torch.cat([embed_list[idx] for idx in col], dim=1)
+        q = flow.cat([embed_list[idx] for idx in col], dim=1)
 
         # -------------------------
         if self.kernel_type == 'mat':
             p.unsqueeze_(dim=1)
             # k     k* pair* k
             # batch * pair
-            kp = torch.sum(
+            kp = flow.sum(
 
                 # batch * pair * k
 
-                torch.mul(
+                flow.mul(
 
                     # batch * pair * k
 
-                    torch.transpose(
+                    flow.transpose(
 
                         # batch * k * pair
 
-                        torch.sum(
+                        flow.sum(
 
                             # batch * k * pair * k
 
-                            torch.mul(
+                            flow.mul(
 
                                 p, self.kernel),
 
@@ -209,11 +209,11 @@ class OutterProductLayer(nn.Module):
         else:
             # 1 * pair * (k or 1)
 
-            k = torch.unsqueeze(self.kernel, 0)
+            k = flow.unsqueeze(self.kernel, 0)
 
             # batch * pair
 
-            kp = torch.sum(p * q * k, dim=-1)
+            kp = flow.sum(p * q * k, dim=-1)
 
             # p q # b * p * k
 
@@ -235,14 +235,14 @@ class PredictionLayer(nn.Module):
         self.use_bias = use_bias
         self.task = task
         if self.use_bias:
-            self.bias = nn.Parameter(torch.zeros((1,)))
+            self.bias = nn.Parameter(flow.zeros((1,)))
 
     def forward(self, X):
         output = X
         if self.use_bias:
             output += self.bias
         if self.task == "binary":
-            output = torch.sigmoid(output)
+            output = flow.sigmoid(output)
         return output
 
 
@@ -298,15 +298,15 @@ class SequencePoolingLayer(nn.Module):
         self.supports_masking = supports_masking
         self.mode = mode
         self.device = device
-        self.eps = torch.FloatTensor([1e-8]).to(device)
+        self.eps = flow.FloatTensor([1e-8]).to(device)
         self.to(device)
 
-    def _sequence_mask(self, lengths, maxlen=None, dtype=torch.bool):
+    def _sequence_mask(self, lengths, maxlen=None, dtype=flow.bool):
         # Returns a mask tensor representing the first N positions of each cell.
         if maxlen is None:
             maxlen = lengths.max()
-        row_vector = torch.arange(0, maxlen, 1).to(lengths.device)
-        matrix = torch.unsqueeze(lengths, dim=-1)
+        row_vector = flow.arange(0, maxlen, 1).to(lengths.device)
+        matrix = flow.unsqueeze(lengths, dim=-1)
         mask = row_vector < matrix
 
         mask.type(dtype)
@@ -316,28 +316,28 @@ class SequencePoolingLayer(nn.Module):
         if self.supports_masking:
             uiseq_embed_list, mask = seq_value_len_list  # [B, T, E], [B, 1]
             mask = mask.float()
-            user_behavior_length = torch.sum(mask, dim=-1, keepdim=True)
+            user_behavior_length = flow.sum(mask, dim=-1, keepdim=True)
             mask = mask.unsqueeze(2)
         else:
             uiseq_embed_list, user_behavior_length = seq_value_len_list  # [B, T, E], [B, 1]
             mask = self._sequence_mask(user_behavior_length, maxlen=uiseq_embed_list.shape[1],
-                                       dtype=torch.float32)  # [B, 1, maxlen]
-            mask = torch.transpose(mask, 1, 2)  # [B, maxlen, 1]
+                                       dtype=flow.float32)  # [B, 1, maxlen]
+            mask = flow.transpose(mask, 1, 2)  # [B, maxlen, 1]
 
         embedding_size = uiseq_embed_list.shape[-1]
 
-        mask = torch.repeat_interleave(mask, embedding_size, dim=2)  # [B, maxlen, E]
+        mask = flow.repeat_interleave(mask, embedding_size, dim=2)  # [B, maxlen, E]
 
         if self.mode == 'max':
             hist = uiseq_embed_list - (1 - mask) * 1e9
-            hist = torch.max(hist, dim=1, keepdim=True)[0]
+            hist = flow.max(hist, dim=1, keepdim=True)[0]
             return hist
         hist = uiseq_embed_list * mask.float()
-        hist = torch.sum(hist, dim=1, keepdim=False)
+        hist = flow.sum(hist, dim=1, keepdim=False)
 
         if self.mode == 'mean':
             self.eps = self.eps.to(user_behavior_length.device)
-            hist = torch.div(hist, user_behavior_length.type(torch.float32) + self.eps)
+            hist = flow.div(hist, user_behavior_length.type(flow.float32) + self.eps)
 
-        hist = torch.unsqueeze(hist, dim=1)
+        hist = flow.unsqueeze(hist, dim=1)
         return hist

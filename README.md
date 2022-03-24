@@ -1,2 +1,2 @@
 # PNN
-PNN-torch to PNN-oneflow
+PNN-flow to PNN-oneflow

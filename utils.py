@@ -1,7 +1,7 @@
 from collections import OrderedDict, namedtuple, defaultdict
 
 
-import oneflow as torch
+import oneflow as flow
 import oneflow.nn as nn
 from layers import SequencePoolingLayer
 
@@ -22,7 +22,7 @@ class SparseFeat(namedtuple('SparseFeat',
             embedding_dim = 6 * int(pow(vocabulary_size, 0.25))
         if use_hash:
             print(
-                "Notice! Feature Hashing on the fly currently is not supported in torch version,you can use tensorflow version!")
+                "Notice! Feature Hashing on the fly currently is not supported in flow version,you can use tensorflow version!")
         return super(SparseFeat, cls).__new__(cls, name, vocabulary_size, embedding_dim, use_hash, dtype,
                                               embedding_name, group_name)
 
@@ -114,20 +114,20 @@ def concat_fun(inputs, axis=-1):
     if len(inputs) == 1:
         return inputs[0]
     else:
-        return torch.cat(inputs, dim=axis)
+        return flow.cat(inputs, dim=axis)
         
 
 def combined_dnn_input(sparse_embedding_list, dense_value_list):
     if len(sparse_embedding_list) > 0 and len(dense_value_list) > 0:
-        sparse_dnn_input = torch.flatten(
-            torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
-        dense_dnn_input = torch.flatten(
-            torch.cat(dense_value_list, dim=-1), start_dim=1)
+        sparse_dnn_input = flow.flatten(
+            flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
+        dense_dnn_input = flow.flatten(
+            flow.cat(dense_value_list, dim=-1), start_dim=1)
         return concat_fun([sparse_dnn_input, dense_dnn_input])
     elif len(sparse_embedding_list) > 0:
-        return torch.flatten(torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
+        return flow.flatten(flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
     elif len(dense_value_list) > 0:
-        return torch.flatten(torch.cat(dense_value_list, dim=-1), start_dim=1)
+        return flow.flatten(flow.cat(dense_value_list, dim=-1), start_dim=1)
     else:
         raise NotImplementedError
 
