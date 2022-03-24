@@ -1,8 +1,8 @@
 import itertools
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import oneflow as torch
+import oneflow.nn as nn
+import oneflow.nn.functional as F
 import numpy as np
 
 class DNN(nn.Module):
@@ -260,13 +260,8 @@ def activation_layer(act_name, hidden_size=None, dice_dim=2):
     if isinstance(act_name, str):
         if act_name.lower() == 'sigmoid':
             act_layer = nn.Sigmoid()
-        # elif act_name.lower() == 'linear':
-        #     act_layer = Identity()
         elif act_name.lower() == 'relu':
             act_layer = nn.ReLU(inplace=True)
-        # elif act_name.lower() == 'dice':
-        #     assert dice_dim
-        #     act_layer = Dice(hidden_size, dice_dim)
         elif act_name.lower() == 'prelu':
             act_layer = nn.PReLU()
     elif issubclass(act_name, nn.Module):
