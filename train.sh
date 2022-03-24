@@ -1,1 +1,3 @@
-python3 -m train.py
+echo "start"
+python3  train.py
+echo "end"

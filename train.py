@@ -9,6 +9,7 @@ import oneflow as flow
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from config import get_args
 from utils import SparseFeat, DenseFeat, get_feature_names
 from model import PNN
 
@@ -79,6 +80,9 @@ class Trainer(object):
         print("test AUC", round(roc_auc_score(test[target].values, pred_ans), 4))
 
 
+    def __call__(self):
+#        self.train()
+#	TODO
 
 if __name__ == "__main__":
     flow.boxing.nccl.enable_all_to_all(True)
