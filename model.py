@@ -71,7 +71,7 @@ class PNN(BaseModel):
     """
 
     def __init__(self, dnn_feature_columns, dnn_hidden_units=(128, 128), l2_reg_embedding=1e-5, l2_reg_dnn=0,
-                 init_std=0.0001, seed=1024, dnn_dropout=0, dnn_activation='relu', use_inner=True, use_outter=False,
+                 init_std=0.0001, seed=1024, dnn_dropout=0, dnn_activation='relu', use_inner=True, use_outter=True,
                  kernel_type='mat', task='binary', device='cpu', gpus=None):
 
         super(PNN, self).__init__([], dnn_feature_columns, l2_reg_linear=0, l2_reg_embedding=l2_reg_embedding,
@@ -114,9 +114,11 @@ class PNN(BaseModel):
 
         sparse_embedding_list, dense_value_list = self.input_from_feature_columns(X, self.dnn_feature_columns,
                                                                                   self.embedding_dict)
+        print("sparse_embedding_list.shape: ",  len(sparse_embedding_list), len(sparse_embedding_list[0]))           
+        # print("dense_value_list.shape: ",  dense_value_list.shape)                           
         linear_signal = flow.flatten(
             concat_fun(sparse_embedding_list), start_dim=1)
-
+        print("linear_signal.shape: ", linear_signal.shape)
         if self.use_inner:
             inner_product = flow.flatten(
                 self.innerproduct(sparse_embedding_list), start_dim=1)

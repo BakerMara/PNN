@@ -176,7 +176,7 @@ class OutterProductLayer(nn.Module):
 
         # -------------------------
         if self.kernel_type == 'mat':
-            p.unsqueeze_(dim=1)
+            # p.unsqueeze_(dim=1)
             # k     k* pair* k
             # batch * pair
             kp = flow.sum(
@@ -197,7 +197,7 @@ class OutterProductLayer(nn.Module):
 
                             flow.mul(
 
-                                p, self.kernel),
+                                p.unsqueeze(dim=1), self.kernel),
 
                             dim=-1),
 
