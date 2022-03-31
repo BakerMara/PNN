@@ -9,44 +9,11 @@ from tqdm import tqdm
 
 import time
 
-from layers import *
-from utils import *
-from basemodel import Linear, BaseModel
+from models.layers import *
+from utils.utils import *
+from models.basemodel import Linear, BaseModel
 
 
-def compute_input_dim(feature_columns, include_sparse=True, include_dense=True, feature_group=False):
-    sparse_feature_columns = list(
-            filter(lambda x: isinstance(x, (SparseFeat, VarLenSparseFeat)), feature_columns)) if len(
-            feature_columns) else []
-    dense_feature_columns = list(
-            filter(lambda x: isinstance(x, DenseFeat), feature_columns)) if len(feature_columns) else []
-
-    dense_input_dim = sum(
-            map(lambda x: x.dimension, dense_feature_columns))
-    if feature_group:
-        sparse_input_dim = len(sparse_feature_columns)
-    else:
-        sparse_input_dim = sum(feat.embedding_dim for feat in sparse_feature_columns)
-    input_dim = 0
-    if include_sparse:
-        input_dim += sparse_input_dim
-    if include_dense:
-        input_dim += dense_input_dim
-    return input_dim
-
-def combined_dnn_input(sparse_embedding_list, dense_value_list):
-    if len(sparse_embedding_list) > 0 and len(dense_value_list) > 0:
-        sparse_dnn_input = flow.flatten(
-            flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
-        dense_dnn_input = flow.flatten(
-            flow.cat(dense_value_list, dim=-1), start_dim=1)
-        return concat_fun([sparse_dnn_input, dense_dnn_input])
-    elif len(sparse_embedding_list) > 0:
-        return flow.flatten(flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
-    elif len(dense_value_list) > 0:
-        return flow.flatten(flow.cat(dense_value_list, dim=-1), start_dim=1)
-    else:
-        raise NotImplementedError
 
 
 class PNN(BaseModel):

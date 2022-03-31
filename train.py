@@ -9,9 +9,9 @@ import oneflow as flow
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-from config import get_args
-from utils import SparseFeat, DenseFeat, get_feature_names
-from model import PNN
+from parse.parse import get_args
+from utils.utils import SparseFeat, DenseFeat, get_feature_names
+from models.net.pnn import PNN
 
 
 class Trainer(object):

@@ -14,8 +14,8 @@ from oneflow.utils.data import DataLoader
 from sklearn.metrics import *
 from tqdm import tqdm
 
-from layers import *
-from utils import *
+from models.layers import *
+from utils.utils import *
 
 class Linear(nn.Module):
     def __init__(self, feature_columns, feature_index, init_std=0.0001, device='cpu'):

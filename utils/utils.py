@@ -3,7 +3,7 @@ from collections import OrderedDict, namedtuple, defaultdict
 
 import oneflow as flow
 import oneflow.nn as nn
-from layers import SequencePoolingLayer
+from models.layers import SequencePoolingLayer
 
 
 DEFAULT_GROUP_NAME = "default_group"
@@ -179,3 +179,23 @@ def varlen_embedding_lookup(X, embedding_dict, sequence_input_dict, varlen_spars
             X[:, lookup_idx[0]:lookup_idx[1]].long())  # (lookup_idx)
 
     return varlen_embedding_vec_dict
+
+def compute_input_dim(feature_columns, include_sparse=True, include_dense=True, feature_group=False):
+    sparse_feature_columns = list(
+            filter(lambda x: isinstance(x, (SparseFeat, VarLenSparseFeat)), feature_columns)) if len(
+            feature_columns) else []
+    dense_feature_columns = list(
+            filter(lambda x: isinstance(x, DenseFeat), feature_columns)) if len(feature_columns) else []
+
+    dense_input_dim = sum(
+            map(lambda x: x.dimension, dense_feature_columns))
+    if feature_group:
+        sparse_input_dim = len(sparse_feature_columns)
+    else:
+        sparse_input_dim = sum(feat.embedding_dim for feat in sparse_feature_columns)
+    input_dim = 0
+    if include_sparse:
+        input_dim += sparse_input_dim
+    if include_dense:
+        input_dim += dense_input_dim
+    return input_dim
