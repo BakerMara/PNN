@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     model = PNN(dnn_feature_columns=dnn_feature_columns,
                    task='binary',
-                   l2_reg_embedding=1e-5, device=device)
+                   l2_reg_embedding=1e-5, use_outter=False, device=device)
 
     model.compile("adagrad", "binary_crossentropy",
                   metrics=["binary_crossentropy", "auc"], )
