@@ -8,14 +8,14 @@ import time
 import numpy as np
 import oneflow as flow
 import oneflow.nn as nn
-import oneflow.nn.functional as F
 import oneflow.utils.data as Data
 from oneflow.utils.data import DataLoader
-from sklearn.metrics import *
+from sklearn.metrics import log_loss, roc_auc_score
 from tqdm import tqdm
 
-from models.layers import *
-from utils.utils import *
+from models.layers import PredictionLayer
+# from utils.utils import *
+from utils.utils import SparseFeat, DenseFeat, VarLenSparseFeat, build_input_features, create_embedding_matrix, varlen_embedding_lookup, get_varlen_pooling_list
 
 class Linear(nn.Module):
     def __init__(self, feature_columns, feature_index, init_std=0.0001, device='cpu'):

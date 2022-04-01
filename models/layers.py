@@ -1,9 +1,7 @@
-import itertools
 
 import oneflow as flow
 import oneflow.nn as nn
-import oneflow.nn.functional as F
-import numpy as np
+
 
 class DNN(nn.Module):
     """The Multi Layer Percetron
@@ -73,13 +71,6 @@ class DNN(nn.Module):
             fc = self.dropout(fc)
             deep_input = fc
         return deep_input
-
-
-def concat_fun(inputs, axis=-1):
-    if len(inputs) == 1:
-        return inputs[0]
-    else:
-        return flow.cat(inputs, dim=axis)
 
 
 class InnerProductLayer(nn.Module):

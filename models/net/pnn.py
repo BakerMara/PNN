@@ -1,17 +1,9 @@
-import numpy as np
 import oneflow as flow
 import oneflow.nn as nn
-import oneflow.nn.functional as F
-import oneflow.utils.data as Data
-from oneflow.utils.data import DataLoader
-from sklearn.metrics import *
-from tqdm import tqdm
 
-import time
-
-from models.layers import *
-from utils.utils import *
-from models.basemodel import Linear, BaseModel
+from models.layers import InnerProductLayer, OutterProductLayer, DNN
+from utils.utils import concat_fun, combined_dnn_input
+from models.basemodel import BaseModel
 
 
 
