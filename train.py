@@ -15,8 +15,8 @@ from models.net.pnn import PNN
 
 
 class Trainer(object):
-    def __init__(self):
-        args = get_args()
+    def __init__(self, args):
+        self.args = args
 
         print('hello')
         data = pd.read_csv('./criteo_sample.txt')
@@ -87,6 +87,8 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
+    os.system(sys.executable + " -m oneflow --doctor")
     flow.boxing.nccl.enable_all_to_all(True)
-    trainer = Trainer()
-    trainer()
+    args = get_args()
+
+    train(args)

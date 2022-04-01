@@ -14,7 +14,6 @@ from sklearn.metrics import log_loss, roc_auc_score
 from tqdm import tqdm
 
 from models.layers import PredictionLayer
-# from utils.utils import *
 from utils.utils import SparseFeat, DenseFeat, VarLenSparseFeat, build_input_features, create_embedding_matrix, varlen_embedding_lookup, get_varlen_pooling_list
 
 class Linear(nn.Module):

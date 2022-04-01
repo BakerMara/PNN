@@ -1,4 +1,4 @@
-from collections import OrderedDict, namedtuple, defaultdict
+from collections import OrderedDict, namedtuple
 
 
 import oneflow as flow
