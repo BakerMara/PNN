@@ -1,52 +1,11 @@
-import numpy as np
-import oneflow as torch
+import oneflow as flow
 import oneflow.nn as nn
-import oneflow.nn.functional as F
-import oneflow.utils.data as Data
-from oneflow.utils.data import DataLoader
-from sklearn.metrics import *
-from tqdm import tqdm
 
-import time
-
-from layers import *
-from utils import *
-from basemodel import Linear, BaseModel
+from models.layers import InnerProductLayer, OutterProductLayer, DNN
+from utils.utils import concat_fun, combined_dnn_input
+from models.basemodel import BaseModel
 
 
-def compute_input_dim(feature_columns, include_sparse=True, include_dense=True, feature_group=False):
-    sparse_feature_columns = list(
-            filter(lambda x: isinstance(x, (SparseFeat, VarLenSparseFeat)), feature_columns)) if len(
-            feature_columns) else []
-    dense_feature_columns = list(
-            filter(lambda x: isinstance(x, DenseFeat), feature_columns)) if len(feature_columns) else []
-
-    dense_input_dim = sum(
-            map(lambda x: x.dimension, dense_feature_columns))
-    if feature_group:
-        sparse_input_dim = len(sparse_feature_columns)
-    else:
-        sparse_input_dim = sum(feat.embedding_dim for feat in sparse_feature_columns)
-    input_dim = 0
-    if include_sparse:
-        input_dim += sparse_input_dim
-    if include_dense:
-        input_dim += dense_input_dim
-    return input_dim
-
-def combined_dnn_input(sparse_embedding_list, dense_value_list):
-    if len(sparse_embedding_list) > 0 and len(dense_value_list) > 0:
-        sparse_dnn_input = torch.flatten(
-            torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
-        dense_dnn_input = torch.flatten(
-            torch.cat(dense_value_list, dim=-1), start_dim=1)
-        return concat_fun([sparse_dnn_input, dense_dnn_input])
-    elif len(sparse_embedding_list) > 0:
-        return torch.flatten(torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
-    elif len(dense_value_list) > 0:
-        return torch.flatten(torch.cat(dense_value_list, dim=-1), start_dim=1)
-    else:
-        raise NotImplementedError
 
 
 class PNN(BaseModel):
@@ -65,13 +24,13 @@ class PNN(BaseModel):
     :param kernel_type: str,kernel_type used in outter-product,can be ``'mat'`` , ``'vec'`` or ``'num'``
     :param task: str, ``"binary"`` for  binary logloss or  ``"regression"`` for regression loss
     :param device: str, ``"cpu"`` or ``"cuda:0"``
-    :param gpus: list of int or torch.device for multiple gpus. If None, run on `device`. `gpus[0]` should be the same gpu with `device`.
+    :param gpus: list of int or flow.device for multiple gpus. If None, run on `device`. `gpus[0]` should be the same gpu with `device`.
     :return: A PyTorch model instance.
 
     """
 
     def __init__(self, dnn_feature_columns, dnn_hidden_units=(128, 128), l2_reg_embedding=1e-5, l2_reg_dnn=0,
-                 init_std=0.0001, seed=1024, dnn_dropout=0, dnn_activation='relu', use_inner=True, use_outter=False,
+                 init_std=0.0001, seed=1024, dnn_dropout=0, dnn_activation='relu', use_inner=True, use_outter=True,
                  kernel_type='mat', task='binary', device='cpu', gpus=None):
 
         super(PNN, self).__init__([], dnn_feature_columns, l2_reg_linear=0, l2_reg_embedding=l2_reg_embedding,
@@ -114,23 +73,25 @@ class PNN(BaseModel):
 
         sparse_embedding_list, dense_value_list = self.input_from_feature_columns(X, self.dnn_feature_columns,
                                                                                   self.embedding_dict)
-        linear_signal = torch.flatten(
+        print("sparse_embedding_list.shape: ",  len(sparse_embedding_list), len(sparse_embedding_list[0]))           
+        # print("dense_value_list.shape: ",  dense_value_list.shape)                           
+        linear_signal = flow.flatten(
             concat_fun(sparse_embedding_list), start_dim=1)
-
+        print("linear_signal.shape: ", linear_signal.shape)
         if self.use_inner:
-            inner_product = torch.flatten(
+            inner_product = flow.flatten(
                 self.innerproduct(sparse_embedding_list), start_dim=1)
 
         if self.use_outter:
             outer_product = self.outterproduct(sparse_embedding_list)
 
         if self.use_outter and self.use_inner:
-            product_layer = torch.cat(
+            product_layer = flow.cat(
                 [linear_signal, inner_product, outer_product], dim=1)
         elif self.use_outter:
-            product_layer = torch.cat([linear_signal, outer_product], dim=1)
+            product_layer = flow.cat([linear_signal, outer_product], dim=1)
         elif self.use_inner:
-            product_layer = torch.cat([linear_signal, inner_product], dim=1)
+            product_layer = flow.cat([linear_signal, inner_product], dim=1)
         else:
             product_layer = linear_signal
 

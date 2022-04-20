@@ -1,9 +1,9 @@
-from collections import OrderedDict, namedtuple, defaultdict
+from collections import OrderedDict, namedtuple
 
 
-import oneflow as torch
+import oneflow as flow
 import oneflow.nn as nn
-from layers import SequencePoolingLayer
+from models.layers import SequencePoolingLayer
 
 
 DEFAULT_GROUP_NAME = "default_group"
@@ -22,7 +22,7 @@ class SparseFeat(namedtuple('SparseFeat',
             embedding_dim = 6 * int(pow(vocabulary_size, 0.25))
         if use_hash:
             print(
-                "Notice! Feature Hashing on the fly currently is not supported in torch version,you can use tensorflow version!")
+                "Notice! Feature Hashing on the fly currently is not supported in flow version,you can use tensorflow version!")
         return super(SparseFeat, cls).__new__(cls, name, vocabulary_size, embedding_dim, use_hash, dtype,
                                               embedding_name, group_name)
 
@@ -114,20 +114,20 @@ def concat_fun(inputs, axis=-1):
     if len(inputs) == 1:
         return inputs[0]
     else:
-        return torch.cat(inputs, dim=axis)
+        return flow.cat(inputs, dim=axis)
         
 
 def combined_dnn_input(sparse_embedding_list, dense_value_list):
     if len(sparse_embedding_list) > 0 and len(dense_value_list) > 0:
-        sparse_dnn_input = torch.flatten(
-            torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
-        dense_dnn_input = torch.flatten(
-            torch.cat(dense_value_list, dim=-1), start_dim=1)
+        sparse_dnn_input = flow.flatten(
+            flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
+        dense_dnn_input = flow.flatten(
+            flow.cat(dense_value_list, dim=-1), start_dim=1)
         return concat_fun([sparse_dnn_input, dense_dnn_input])
     elif len(sparse_embedding_list) > 0:
-        return torch.flatten(torch.cat(sparse_embedding_list, dim=-1), start_dim=1)
+        return flow.flatten(flow.cat(sparse_embedding_list, dim=-1), start_dim=1)
     elif len(dense_value_list) > 0:
-        return torch.flatten(torch.cat(dense_value_list, dim=-1), start_dim=1)
+        return flow.flatten(flow.cat(dense_value_list, dim=-1), start_dim=1)
     else:
         raise NotImplementedError
 
@@ -179,3 +179,23 @@ def varlen_embedding_lookup(X, embedding_dict, sequence_input_dict, varlen_spars
             X[:, lookup_idx[0]:lookup_idx[1]].long())  # (lookup_idx)
 
     return varlen_embedding_vec_dict
+
+def compute_input_dim(feature_columns, include_sparse=True, include_dense=True, feature_group=False):
+    sparse_feature_columns = list(
+            filter(lambda x: isinstance(x, (SparseFeat, VarLenSparseFeat)), feature_columns)) if len(
+            feature_columns) else []
+    dense_feature_columns = list(
+            filter(lambda x: isinstance(x, DenseFeat), feature_columns)) if len(feature_columns) else []
+
+    dense_input_dim = sum(
+            map(lambda x: x.dimension, dense_feature_columns))
+    if feature_group:
+        sparse_input_dim = len(sparse_feature_columns)
+    else:
+        sparse_input_dim = sum(feat.embedding_dim for feat in sparse_feature_columns)
+    input_dim = 0
+    if include_sparse:
+        input_dim += sparse_input_dim
+    if include_dense:
+        input_dim += dense_input_dim
+    return input_dim
